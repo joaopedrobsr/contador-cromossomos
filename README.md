@@ -19,7 +19,8 @@ Ferramenta para **contar cromossomos em fotos de metáfases** marcando cada crom
 7. [Atalhos de teclado](#atalhos-de-teclado)
 8. [Problemas comuns](#problemas-comuns)
 9. [Origem e como citar](#origem-e-como-citar)
-10. [Licença](#licença)
+10. [Histórico de versões](#histórico-de-versões)
+11. [Licença](#licença)
 
 ## Requisitos
 
@@ -58,9 +59,12 @@ O mesmo guia, com mais detalhes, está dentro do contador, no botão **Guia** (o
 | Apagar uma marca | botão direito sobre ela. `Ctrl`+`Z` desfaz |
 | Outra célula na mesma foto | *+ célula* ou `C`. Cada célula tem cor, contagem e classificação próprias e vira uma linha da planilha |
 | Foto sem célula contável | *Descartar foto*, com o motivo. Ela entra na planilha como descartada |
-| Conferir a imagem | segurar `H` esconde as marcas; `N` esconde só os números |
+| Conferir a imagem | segurar `H` esconde as marcas |
+| Contar sem ver o total | `N` esconde os números das marcas e a contagem (no canto da foto, no painel e no aviso ao salvar) |
 
 **Dúvidas** servem para o que não dá para decidir na foto (dois cromossomos encostados, um possível fragmento). A planilha traz o **n** (marcas normais), as **dúvidas** e o **n máximo** (n + dúvidas), assim a incerteza da contagem fica registrada em vez de escondida.
+
+**Contagem realmente às cegas:** o modo às cegas esconde de qual foto se trata; com `N` desligado, você também não vê quantos cromossomos já marcou, então não é puxado para um número esperado. A escolha fica guardada para as próximas fotos. A foto salva e a planilha sempre trazem os números e o total.
 
 Brilho, contraste e saturação ajudam a enxergar, mas mudam só a tela: a foto salva sai sempre com as cores originais.
 
@@ -128,7 +132,7 @@ Os arquivos de imagem levam o nome da subpasta antes do nome da foto (por exempl
 | `F` | ajustar à tela |
 | `[` `]` | espessura da linha |
 | segurar `H` | esconder as marcas |
-| `N` | mostrar ou esconder os números (só na tela) |
+| `N` | mostrar ou esconder os números e a contagem (só na tela) |
 | `C`, `1` a `4` | nova célula, trocar de célula |
 | `←` `→` | foto anterior ou próxima, sem salvar (as marcas viram rascunho) |
 | `?` | abrir o guia de atalhos |
@@ -147,7 +151,12 @@ O contador foi criado por João Pedro Reis para a recontagem às cegas de metáf
 
 Para citar (ABNT):
 
-> REIS, João Pedro. **Contador de cromossomos**. Versão 1.0. 2026. Disponível em: https://github.com/joaopedrobsr/contador-cromossomos. Acesso em: dia mês ano.
+> REIS, João Pedro. **Contador de cromossomos**. Versão 1.1. [S. l.], 2026. Disponível em: https://github.com/joaopedrobsr/contador-cromossomos. Acesso em: dia mês ano.
+
+## Histórico de versões
+
+- **1.1** (15/11/2026): a tecla `N` passa a esconder também a contagem no canto da foto, no painel e no aviso ao salvar, para a contagem ser feita sem ver o total.
+- **1.0** (15/11/2026): primeira versão pública.
 
 ## Licença
 

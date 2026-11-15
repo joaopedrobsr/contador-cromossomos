@@ -210,7 +210,7 @@ code{font:12.5px/1.4 ui-monospace,Consolas,monospace;background:var(--surface-3)
   <header class="masthead">
     <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
     <h1>Contador de cromossomos</h1>
-    <span class="ver">versão 1.0</span>
+    <span class="ver">versão 1.1</span>
   </header>
   <p class="lede">Conte cromossomos em fotos de metáfases marcando cada um com um traço. O contador soma as marcas, grava a foto marcada e monta uma planilha com uma linha por célula. No modo às cegas, as fotos aparecem embaralhadas e sem nome.</p>
   <p class="privacy"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -268,6 +268,7 @@ code{font:12.5px/1.4 ui-monospace,Consolas,monospace;background:var(--surface-3)
         <li><span class="k">Botão direito</span><span>apaga a marca embaixo do cursor; <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz</span></li>
         <li><span class="k">Roda do mouse</span><span>aproxima e afasta; <kbd>Espaço</kbd> + arrastar move a foto</span></li>
         <li><span class="k">Segurar <kbd>H</kbd></span><span>esconde as marcas para conferir a imagem por baixo</span></li>
+        <li><span class="k"><kbd>N</kbd></span><span>esconde os números e a contagem, para não ver o total enquanto conta</span></li>
         <li><span class="k"><kbd>C</kbd></span><span>outra célula na mesma foto; cada célula vira uma linha da planilha</span></li>
         <li><span class="k"><kbd>Enter</kbd></span><span>salva a foto marcada e abre a próxima</span></li>
       </ul>
@@ -307,7 +308,7 @@ code{font:12.5px/1.4 ui-monospace,Consolas,monospace;background:var(--surface-3)
       <div class="slider" style="margin-top:10px"><span>Espessura</span><input type="range" id="sWidth" min="1" max="25" step="0.5" value="3"><span id="vWidth">3</span></div>
       <div class="slider"><span>Opacidade</span><input type="range" id="sAlpha" min="0.2" max="1" step="0.05" value="0.7"><span id="vAlpha">70%</span></div>
       <label class="chk small" style="margin:8px 0 0"><input type="checkbox" id="hideMarks"> Esconder marcas <kbd>H</kbd></label>
-      <label class="chk small" style="margin:6px 0 0"><input type="checkbox" id="showNums" checked> Números nas marcas <kbd>N</kbd></label>
+      <label class="chk small" style="margin:6px 0 0"><input type="checkbox" id="showNums" checked> Mostrar números e contagem <kbd>N</kbd></label>
     </div>
 
     <div class="sec">
@@ -354,7 +355,7 @@ code{font:12.5px/1.4 ui-monospace,Consolas,monospace;background:var(--surface-3)
 <script>
 "use strict";
 /* =====================================================================
-   Contador de cromossomos · versão 1.0 · licença MIT
+   Contador de cromossomos · versão 1.1 · licença MIT
    Arquivo único, roda no navegador (Chrome ou Edge). Nada é enviado à internet.
 
    Lê:    <pasta escolhida>/**  (somente leitura; inclui subpastas)
@@ -365,7 +366,7 @@ code{font:12.5px/1.4 ui-monospace,Consolas,monospace;background:var(--surface-3)
             sessao.json                            tudo o que foi marcado; permite continuar
    ===================================================================== */
 
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.1';
 const OUT_NAME   = 'Contador - resultados';
 const IMG_DIR    = 'Imagens marcadas';
 const ZOOM_DIR   = 'Recortes ampliados';
@@ -791,7 +792,7 @@ $('#toolC').onclick=()=>setTool('c'); $('#toolD').onclick=()=>setTool('d');
 $('#sWidth').oninput=e=>setWidth(+e.target.value);
 $('#sAlpha').oninput=e=>{ S.alpha=+e.target.value; lsSet('alpha',S.alpha); syncToolUI(); render(); };
 $('#hideMarks').onchange=e=>{ S.hide=e.target.checked; render(); };
-function setNums(v){ S.nums=v; lsSet('nums',v); $('#showNums').checked=v; render(); }
+function setNums(v){ S.nums=v; lsSet('nums',v); $('#showNums').checked=v; if(S.sess) updateCounts(); render(); }
 $('#showNums').onchange=e=>setNums(e.target.checked);
 let filtT=null;
 function onFilt(){ syncToolUI(); lsSet('filt',S.filt); clearTimeout(filtT); filtT=setTimeout(()=>{ buildBase(); render(); }, 60); }
@@ -824,14 +825,15 @@ function removeCell(i){
 }
 function updateCounts(){
   const c=S.cells[S.ci]; const {n,d}=cellCounts(c); const col=CELL_COLORS[S.ci%CELL_COLORS.length];
-  $('#cellN').textContent=n; $('#cellN').style.color=col;
-  $('#cellSub').textContent = d ? `+ ${d} dúvida${d>1?'s':''} (máx. ${n+d})` : (n===1?'cromossomo':'cromossomos');
-  $('#hudN').textContent = n + (d?` +${d}?`:'');
+  const show=S.nums;
+  $('#cellN').textContent= show ? n : '—'; $('#cellN').style.color=col;
+  $('#cellSub').textContent = !show ? 'contagem oculta (N mostra)' : d ? `+ ${d} dúvida${d>1?'s':''} (máx. ${n+d})` : (n===1?'cromossomo':'cromossomos');
+  $('#hudN').textContent = show ? n + (d?` +${d}?`:'') : '—';
   $('#hudN').style.color=col;
   $('#hudSub').textContent = `célula ${S.ci+1}` + (S.cells.length>1?` de ${S.cells.length}`:'') + (S.tool==='d'?', marcando dúvidas':'');
   const tabs=$('#cellTabs'); tabs.innerHTML='';
   S.cells.forEach((cell,i)=>{ const b=document.createElement('button'); b.className='cell'+(i===S.ci?' on':''); b.style.color=CELL_COLORS[i%CELL_COLORS.length];
-    b.textContent=`${i+1}: ${cellCounts(cell).n}`; b.title=`Célula ${i+1} (tecla ${i+1})`; b.onclick=()=>{ S.ci=i; updateUI(); render(); }; tabs.appendChild(b); });
+    b.textContent= show ? `${i+1}: ${cellCounts(cell).n}` : `Célula ${i+1}`; b.title=`Célula ${i+1} (tecla ${i+1})`; b.onclick=()=>{ S.ci=i; updateUI(); render(); }; tabs.appendChild(b); });
   const add=document.createElement('button'); add.textContent='+ célula'; add.title='Outra célula na mesma foto (C)'; add.className='small'; add.onclick=addCell; tabs.appendChild(add);
   if(S.cells.length>1){ const rm=document.createElement('button'); rm.textContent='Remover'; rm.className='danger small'; rm.title='Remover a célula selecionada'; rm.onclick=()=>removeCell(S.ci); tabs.appendChild(rm); }
 }
@@ -889,7 +891,7 @@ async function saveAndNext(){
     await saveSession();
     const ok = await writeCSV();
     const tot = S.cells.map((c,i)=>{ const {n,d}=cellCounts(c); return (S.cells.length>1?`célula ${i+1}: `:'')+n+' cromossomos'+(d?` (+${d} dúvida${d>1?'s':''})`:''); }).join('; ');
-    toast(`Salva: ${tot}${ok?'':' (planilha pendente)'}`);
+    toast(S.nums ? `Salva: ${tot}${ok?'':' (planilha pendente)'}` : `Foto salva${ok?'':' (planilha pendente)'}.`);
     const nx=nextPending();
     if(nx<0){ updateUI(); showDone(); } else await openIndex(nx);
   }catch(e){ toast('A foto não foi salva: '+e.message, true); setSaveState('erro ao salvar','err'); }
@@ -971,7 +973,7 @@ const GUIDE = {
     <h4>Passo a passo</h4>
     <ol>
       <li>Clique em <b>Escolher pasta…</b> e selecione a pasta das fotos. O navegador pede permissão para ver e editar a pasta: aceite. Ele só cria a pasta <b>${OUT_NAME}</b>; as fotos originais não são alteradas.</li>
-      <li>Decida se quer o <b>modo às cegas</b> (recomendado para recontagem: você não vê de qual planta é a foto) e se alguma foto ou subpasta deve ficar de fora.</li>
+      <li>Decida se quer o <b>modo às cegas</b> (recomendado para recontagem: você não vê de qual planta é a foto) e se alguma foto ou subpasta deve ficar de fora. Para não ver nem o total enquanto conta, desligue também os números com <kbd>N</kbd> já na primeira foto; a escolha fica guardada para as próximas.</li>
       <li>Clique em <b>Começar</b>. A primeira foto abre ajustada à tela.</li>
       <li>Marque cada cromossomo, preencha a classificação da célula e pressione <kbd>Enter</kbd>. A foto marcada é gravada e a próxima abre.</li>
       <li>Para parar, basta fechar a aba. Na volta, escolha a mesma pasta (ou clique em <b>Continuar com esta pasta</b>) e a sessão segue de onde parou.</li>
@@ -988,7 +990,8 @@ const GUIDE = {
     <ul>
       <li>Roda do mouse, ou <kbd>+</kbd> e <kbd>-</kbd>: aproximar e afastar. <kbd>F</kbd>: ajustar à tela.</li>
       <li><kbd>Espaço</kbd> + arrastar, ou o botão do meio do mouse: mover a foto.</li>
-      <li>Segure <kbd>H</kbd> para esconder as marcas e conferir a imagem por baixo. <kbd>N</kbd> esconde só os números (a foto salva sempre leva os números).</li>
+      <li>Segure <kbd>H</kbd> para esconder as marcas e conferir a imagem por baixo.</li>
+      <li><kbd>N</kbd> esconde os números das marcas e também os totais (no canto da foto, no painel e no aviso ao salvar), para contar sem ver o resultado parcial. A foto salva e a planilha continuam com tudo.</li>
       <li><kbd>[</kbd> e <kbd>]</kbd> afinam e engrossam a linha. Brilho, contraste e saturação mudam só a tela.</li>
     </ul>
     <h4>Mais de uma célula na mesma foto</h4>
@@ -1037,7 +1040,7 @@ const GUIDE = {
       <tr><td><kbd>F</kbd></td><td>ajustar à tela</td></tr>
       <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>espessura da linha</td></tr>
       <tr><td>Segurar <kbd>H</kbd></td><td>esconder as marcas</td></tr>
-      <tr><td><kbd>N</kbd></td><td>mostrar ou esconder os números (só na tela)</td></tr>
+      <tr><td><kbd>N</kbd></td><td>mostrar ou esconder os números e a contagem (só na tela)</td></tr>
       <tr><td><kbd>C</kbd>, <kbd>1</kbd> a <kbd>4</kbd></td><td>nova célula, trocar de célula</td></tr>
       <tr><td><kbd>Enter</kbd></td><td>salvar e ir para a próxima (nas Observações, <kbd>Shift</kbd>+<kbd>Enter</kbd> pula linha)</td></tr>
       <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>foto anterior ou próxima, sem salvar (as marcas viram rascunho)</td></tr>
