@@ -1,0 +1,1063 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contador de cromossomos</title>
+<meta name="description" content="Contagem manual de cromossomos em fotos de metáfases, com modo às cegas. Roda no navegador; as fotos não saem do computador.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236d5ce8'/%3E%3Cpath d='M9 7c3 4 4 7 7 9 3-2 4-5 7-9M9 25c3-4 4-7 7-9 3 2 4 5 7 9' stroke='%23fff' stroke-width='3.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ground:#14171d; --surface:#1b1f27; --surface-2:#232833; --surface-3:#2b3140;
+  --rule:#2e3442; --rule-2:#3b4252;
+  --ink:#e7e9ef; --ink-2:#a2a8b6; --ink-3:#737a8a;
+  --stage:#2a2c31;
+  --violet:#8f80f7; --violet-btn:#6d5ce8; --violet-btn-h:#7b6bf0; --violet-soft:rgba(143,128,247,.14);
+  --ok:#43cf92; --warn:#e8b04a; --bad:#ef6f6f; --duv:#ff8a00;
+  --r-s:5px; --r-m:8px; --r-l:12px;
+  --font: "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --font-d: "Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+a{color:var(--violet)}
+button{font:inherit;color:inherit;background:var(--surface-2);border:1px solid var(--rule-2);border-radius:var(--r-m);padding:6px 11px;cursor:pointer;transition:background .12s,border-color .12s}
+button:hover{background:var(--surface-3)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+button.primary{background:var(--violet-btn);border-color:var(--violet-btn);color:#fff;font-weight:600}
+button.primary:hover{background:var(--violet-btn-h)}
+button.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+button.ghost:hover{background:var(--surface-2);color:var(--ink)}
+button.danger{background:transparent;border-color:#5a3438;color:#f2b3b3}
+button.danger:hover{background:#2c1d20}
+button:disabled{opacity:.42;cursor:default}
+button:disabled:hover{background:var(--surface-2)}
+button.primary:disabled:hover{background:var(--violet-btn)}
+kbd{font:11.5px/1.5 var(--font);font-weight:600;background:var(--surface-3);border:1px solid var(--rule-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--ink)}
+button.primary kbd{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.25);color:#fff}
+input[type=range]{width:100%;accent-color:var(--violet-btn);height:18px}
+input[type=text],textarea{width:100%;background:var(--ground);color:var(--ink);border:1px solid var(--rule-2);border-radius:var(--r-m);padding:7px 9px;font:inherit}
+textarea{min-height:56px;resize:vertical}
+label.chk{display:flex;gap:10px;align-items:flex-start;margin:10px 0;cursor:pointer}
+label.chk input{margin-top:3px;accent-color:var(--violet-btn);width:15px;height:15px;flex:none}
+.muted{color:var(--ink-2)}
+.faint{color:var(--ink-3)}
+.small{font-size:12.5px}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+
+/* marca */
+.mark{width:28px;height:28px;flex:none}
+
+/* ========== tela inicial ========== */
+#setup{min-height:100%;padding:48px 28px 64px}
+#setup .wrap{max-width:1040px;margin:0 auto}
+.masthead{display:flex;align-items:center;gap:14px}
+.masthead .mark{width:40px;height:40px}
+.masthead h1{font:600 28px/1.15 var(--font-d);letter-spacing:-.01em;margin:0}
+.masthead .ver{margin-left:auto;font-size:12px;color:var(--ink-3)}
+.lede{max-width:62ch;margin:14px 0 0;color:var(--ink-2);font-size:15px}
+.privacy{display:flex;gap:9px;align-items:flex-start;margin:14px 0 0;max-width:68ch;font-size:13px;color:var(--ink-2)}
+.privacy svg{flex:none;margin-top:2px}
+#unsupported{margin-top:22px;border:1px solid #6a3a3e;background:#251a1d;color:#f5c6c6;border-radius:var(--r-l);padding:12px 16px;max-width:760px}
+
+.cols{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:40px;margin-top:36px;align-items:start}
+@media (max-width:900px){ .cols{grid-template-columns:1fr} }
+
+.steps{list-style:none;margin:0;padding:0}
+.step{display:grid;grid-template-columns:34px 1fr;gap:14px;padding:0 0 26px;position:relative}
+.step:not(:last-child)::before{content:"";position:absolute;left:16px;top:34px;bottom:4px;width:1px;background:var(--rule)}
+.step .dot{width:33px;height:33px;border-radius:50%;border:1px solid var(--rule-2);display:grid;place-items:center;font-weight:600;color:var(--ink-2);background:var(--surface);font-variant-numeric:tabular-nums}
+.step.done .dot{background:var(--violet-soft);border-color:var(--violet);color:var(--violet)}
+.step h2{font:600 16px/1.3 var(--font-d);margin:6px 0 4px}
+.step p{margin:0;color:var(--ink-2);max-width:60ch}
+.step .body{min-width:0}
+.step .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+#folderInfo{margin-top:10px;font-size:13px}
+#folderInfo b{color:var(--ink)}
+.resume{margin-top:12px;padding:10px 12px;border:1px solid var(--rule);border-radius:var(--r-m);background:var(--surface);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.opt-field{margin-top:6px}
+.opt-field .lbl{font-size:13px;margin-bottom:5px}
+#sessNote{margin-top:10px;font-size:13px}
+.btn-lg{padding:9px 18px;font-size:15px}
+
+.guide-side{border-left:1px solid var(--rule);padding-left:28px}
+@media (max-width:900px){ .guide-side{border-left:0;padding-left:0;border-top:1px solid var(--rule);padding-top:24px} }
+.guide-side h2{font:600 16px/1.3 var(--font-d);margin:6px 0 12px}
+.howto{margin:0;padding:0;list-style:none}
+.howto li{display:grid;grid-template-columns:118px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:13.5px}
+.howto li:last-child{border-bottom:0}
+.howto .k{color:var(--ink-2)}
+.guide-side .more{margin-top:14px}
+
+/* ========== aplicação ========== */
+#app{display:grid;grid-template-columns:1fr 340px;grid-template-rows:52px 1fr;height:100vh}
+#top{grid-column:1/3;display:flex;align-items:center;gap:12px;padding:0 10px 0 14px;border-bottom:1px solid var(--rule);background:var(--surface)}
+#top .mark{width:24px;height:24px}
+#top .app-name{font-weight:600;color:var(--ink-2);font-size:13px}
+#top .sep{width:1px;height:20px;background:var(--rule-2)}
+#top .title{font-weight:600}
+#top .spacer{flex:1}
+.pill{font-size:12px;padding:2px 9px;border-radius:99px;background:var(--violet-soft);color:#c9c0ff;border:1px solid rgba(143,128,247,.35)}
+.pill.open{background:rgba(232,176,74,.12);color:#f3d08e;border-color:rgba(232,176,74,.35)}
+#saveState{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+#saveState::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
+#saveState.err{color:var(--bad)} #saveState.err::before{background:var(--bad)}
+#saveState.busy::before{background:var(--warn)}
+#saveState:empty{display:none}
+
+#stage{position:relative;overflow:hidden;background:var(--stage);cursor:crosshair;touch-action:none}
+#stage.pan{cursor:grab}
+#stage.panning{cursor:grabbing}
+#cv{position:absolute;inset:0;width:100%;height:100%}
+#hud{position:absolute;left:14px;top:14px;background:rgba(20,23,29,.86);backdrop-filter:blur(4px);border:1px solid var(--rule-2);border-radius:var(--r-l);padding:9px 14px 8px;pointer-events:none;min-width:96px}
+#hud .n{font:700 32px/1 var(--font-d);font-variant-numeric:tabular-nums}
+#hud .sub{font-size:12px;color:var(--ink-2);margin-top:4px}
+#zoomInfo{position:absolute;right:12px;bottom:12px;font-size:12px;color:var(--ink-2);background:rgba(20,23,29,.8);padding:3px 9px;border-radius:var(--r-s);pointer-events:none;font-variant-numeric:tabular-nums}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:15px;pointer-events:none}
+
+#panel{background:var(--surface);border-left:1px solid var(--rule);overflow-y:auto;padding:4px 16px 24px}
+.sec{border-bottom:1px solid var(--rule);padding:14px 0}
+.sec:last-child{border-bottom:0}
+.sec h3{font-size:13px;color:var(--ink-2);margin:0 0 10px;font-weight:600;display:flex;align-items:center;gap:8px}
+.sec h3 .aside{margin-left:auto;font-weight:400;color:var(--ink-3);font-size:12px}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button{padding:4px 10px;font-size:13px;border-radius:var(--r-s)}
+.seg button.on{background:var(--ink);color:#15171c;border-color:var(--ink);font-weight:600}
+.tool{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tool button{display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 8px}
+.tool .sw{width:10px;height:10px;border-radius:50%}
+.tool button.on.c{background:rgba(67,207,146,.14);border-color:var(--ok);color:#bff3da}
+.tool button.on.d{background:rgba(255,138,0,.14);border-color:var(--duv);color:#ffd2a1}
+.slider{display:grid;grid-template-columns:78px 1fr 42px;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+.slider > span:first-child{color:var(--ink-2)}
+.slider > span:last-child{text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.field{margin:9px 0}
+.field .lbl{font-size:12.5px;color:var(--ink-2);margin-bottom:4px}
+.cells{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.cells button.cell{min-width:44px;font-weight:600;font-variant-numeric:tabular-nums;padding:4px 9px}
+.cells button.cell.on{box-shadow:inset 0 0 0 1.5px currentColor;background:var(--surface-3)}
+.count{display:flex;align-items:baseline;gap:10px;margin:12px 0 4px}
+.count .big{font:700 34px/1 var(--font-d);font-variant-numeric:tabular-nums}
+.q{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:600;font-size:12.5px}
+.q.Boa{background:rgba(67,207,146,.16);color:#a9f0cd}
+.q.Regular{background:rgba(232,176,74,.16);color:#f6d79a}
+.q.Descartar{background:rgba(239,111,111,.16);color:#f8c0c0}
+.q.vazia{background:var(--surface-2);color:var(--ink-3)}
+.qrow{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--ink-2)}
+.actions{display:grid;gap:7px}
+.actions .two{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.actions .primary{padding:9px 12px}
+#grid{display:flex;flex-wrap:wrap;gap:3px}
+#grid button{width:32px;height:24px;padding:0;font-size:11px;border-radius:4px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+#grid button.contada{background:rgba(67,207,146,.16);border-color:rgba(67,207,146,.45);color:#c5f3dc}
+#grid button.descartada{background:rgba(239,111,111,.14);border-color:rgba(239,111,111,.4);color:#f7caca}
+#grid button.rascunho{background:rgba(232,176,74,.14);border-color:rgba(232,176,74,.45);color:#f6dca6}
+#grid button.atual{outline:2px solid var(--ink);outline-offset:1px}
+#stats{font-size:12.5px;color:var(--ink-2);margin-bottom:8px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);margin-top:9px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.bar{height:4px;background:var(--surface-3);border-radius:2px;overflow:hidden;margin:2px 0 10px}
+.bar > i{display:block;height:100%;background:var(--violet);width:0;transition:width .3s}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(6px);background:var(--surface-2);border:1px solid var(--rule-2);color:var(--ink);padding:10px 16px;border-radius:var(--r-m);max-width:min(640px,86vw);box-shadow:0 10px 30px rgba(0,0,0,.45);opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;z-index:60}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#toast.err{border-color:#6a3a3e;background:#2a1c1f;color:#f8d0d0}
+
+/* ========== janelas ========== */
+#modal{position:fixed;inset:0;background:rgba(8,10,14,.62);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+#modal .box{background:var(--surface);border:1px solid var(--rule-2);border-radius:var(--r-l);width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#modal .box.narrow{width:min(520px,100%)}
+#modal .mhead{display:flex;align-items:center;gap:10px;padding:16px 20px 0}
+#modal h2{margin:0;font:600 18px/1.3 var(--font-d)}
+#modal .mhead .x{margin-left:auto}
+#modal .mbody{padding:12px 20px 4px;overflow:auto}
+#modal .foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 16px;flex-wrap:wrap}
+#modal p{margin:0 0 10px;max-width:70ch}
+#modal table{border-collapse:collapse;width:100%;font-size:13px;margin:4px 0 12px}
+#modal th{text-align:left;font-weight:600;color:var(--ink-2);padding:6px 8px;border-bottom:1px solid var(--rule-2)}
+#modal td{padding:6px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+#modal td:first-child{white-space:nowrap}
+#modal h4{font-size:14px;margin:16px 0 6px}
+#modal ol,#modal ul{margin:4px 0 12px;padding-left:20px}
+#modal li{margin:4px 0;max-width:70ch}
+.tabs{display:flex;gap:2px;padding:12px 20px 0;border-bottom:1px solid var(--rule);overflow-x:auto}
+.tabs button{background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;padding:8px 12px;color:var(--ink-2);white-space:nowrap}
+.tabs button:hover{background:transparent;color:var(--ink)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--violet)}
+.tip{border-left:2px solid var(--violet);background:var(--violet-soft);padding:8px 12px;border-radius:0 var(--r-s) var(--r-s) 0;margin:10px 0;font-size:13px}
+code{font:12.5px/1.4 ui-monospace,Consolas,monospace;background:var(--surface-3);padding:1px 5px;border-radius:4px}
+
+@media (max-width:760px){
+  #app{grid-template-columns:1fr;grid-template-rows:52px 58vh auto;height:auto;min-height:100vh}
+  #top{grid-column:1}
+  #panel{border-left:0;border-top:1px solid var(--rule)}
+  #top .app-name,#top .sep{display:none}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#6d5ce8"/><path d="M9 7c3 4 4 7 7 9 3-2 4-5 7-9M9 25c3-4 4-7 7-9 3 2 4 5 7 9" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round"/></symbol>
+</svg>
+
+<!-- ================= TELA INICIAL ================= -->
+<main id="setup">
+ <div class="wrap">
+  <header class="masthead">
+    <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
+    <h1>Contador de cromossomos</h1>
+    <span class="ver">versão 1.0</span>
+  </header>
+  <p class="lede">Conte cromossomos em fotos de metáfases marcando cada um com um traço. O contador soma as marcas, grava a foto marcada e monta uma planilha com uma linha por célula. No modo às cegas, as fotos aparecem embaralhadas e sem nome.</p>
+  <p class="privacy"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+    <span>Tudo acontece no seu navegador. As fotos e os resultados ficam na pasta que você escolher e não são enviados para nenhum servidor, nem quando o contador é aberto pelo link na internet.</span></p>
+
+  <div id="unsupported" hidden>Este navegador não consegue abrir pastas do computador. Use o <b>Google Chrome</b> ou o <b>Microsoft Edge</b> no computador (Windows, macOS ou Linux). Firefox, Safari e navegadores de celular não funcionam.</div>
+
+  <div class="cols">
+    <ol class="steps">
+      <li class="step" id="step1">
+        <span class="dot">1</span>
+        <div class="body">
+          <h2>Escolha a pasta com as fotos</h2>
+          <p>As fotos podem estar soltas ou em subpastas (por exemplo, uma subpasta por planta ou por lâmina). O contador só lê as fotos; os resultados vão para uma pasta nova, <b>Contador - resultados</b>, criada dentro da pasta escolhida.</p>
+          <div class="resume" id="cardResume" hidden>
+            <span class="small">Última pasta usada: <b id="resumeName"></b></span>
+            <button class="primary" id="btnResume">Continuar com esta pasta</button>
+          </div>
+          <div class="row"><button id="btnPick">Escolher pasta…</button></div>
+          <div id="folderInfo" class="muted"></div>
+        </div>
+      </li>
+      <li class="step" id="step2">
+        <span class="dot">2</span>
+        <div class="body">
+          <h2>Defina a sessão</h2>
+          <label class="chk"><input type="checkbox" id="optBlind" checked>
+            <span><b>Modo às cegas</b><br><span class="muted small">Embaralha a ordem e esconde o nome das fotos enquanto você conta. Os nomes voltam na planilha.</span></span></label>
+          <div class="opt-field">
+            <div class="lbl">Deixar de fora fotos ou subpastas cujo nome contenha</div>
+            <input type="text" id="optIgnore" placeholder="ex.: _copia, Outros, teste" autocomplete="off">
+            <div class="faint small" style="margin-top:4px">Separe os termos por vírgula. Deixe em branco para usar todas as fotos.</div>
+          </div>
+          <div id="sessNote"></div>
+        </div>
+      </li>
+      <li class="step" id="step3">
+        <span class="dot">3</span>
+        <div class="body">
+          <h2>Comece a contar</h2>
+          <p>A sessão fica gravada na pasta de resultados. Se fechar o navegador, escolha a mesma pasta para continuar de onde parou.</p>
+          <div class="row">
+            <button class="primary btn-lg" id="btnStart" disabled>Começar</button>
+            <span id="startNote" class="faint small"></span>
+          </div>
+        </div>
+      </li>
+    </ol>
+
+    <aside class="guide-side">
+      <h2>Como marcar</h2>
+      <ul class="howto">
+        <li><span class="k">Arrastar ou clicar</span><span>marca um cromossomo; cada traço conta 1</span></li>
+        <li><span class="k"><kbd>Shift</kbd> + arrastar</span><span>marca um cromossomo duvidoso, em laranja, contado à parte</span></li>
+        <li><span class="k">Botão direito</span><span>apaga a marca embaixo do cursor; <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz</span></li>
+        <li><span class="k">Roda do mouse</span><span>aproxima e afasta; <kbd>Espaço</kbd> + arrastar move a foto</span></li>
+        <li><span class="k">Segurar <kbd>H</kbd></span><span>esconde as marcas para conferir a imagem por baixo</span></li>
+        <li><span class="k"><kbd>C</kbd></span><span>outra célula na mesma foto; cada célula vira uma linha da planilha</span></li>
+        <li><span class="k"><kbd>Enter</kbd></span><span>salva a foto marcada e abre a próxima</span></li>
+      </ul>
+      <div class="more"><button id="btnGuideSetup">Abrir o guia completo</button></div>
+    </aside>
+  </div>
+ </div>
+</main>
+
+<!-- ================= APLICAÇÃO ================= -->
+<div id="app" hidden>
+  <header id="top">
+    <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
+    <span class="app-name">Contador de cromossomos</span>
+    <span class="sep"></span>
+    <span class="title" id="imgTitle">—</span>
+    <span class="pill" id="blindBadge">às cegas</span>
+    <span class="spacer"></span>
+    <span id="saveState"></span>
+    <button class="ghost" id="btnHelp" title="Guia de uso e atalhos">Guia</button>
+  </header>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="hud"><div class="n" id="hudN">0</div><div class="sub" id="hudSub">célula 1</div></div>
+    <div id="zoomInfo"></div>
+    <div id="loading" hidden>Carregando…</div>
+  </div>
+
+  <aside id="panel">
+    <div class="sec">
+      <h3>Marcação</h3>
+      <div class="tool">
+        <button id="toolC" class="on c"><span class="sw" style="background:#22f07a"></span>Cromossomo</button>
+        <button id="toolD" class="d"><span class="sw" style="background:#ff8a00"></span>Dúvida <kbd>D</kbd></button>
+      </div>
+      <div class="slider" style="margin-top:10px"><span>Espessura</span><input type="range" id="sWidth" min="1" max="25" step="0.5" value="3"><span id="vWidth">3</span></div>
+      <div class="slider"><span>Opacidade</span><input type="range" id="sAlpha" min="0.2" max="1" step="0.05" value="0.7"><span id="vAlpha">70%</span></div>
+      <label class="chk small" style="margin:8px 0 0"><input type="checkbox" id="hideMarks"> Esconder marcas <kbd>H</kbd></label>
+      <label class="chk small" style="margin:6px 0 0"><input type="checkbox" id="showNums" checked> Números nas marcas <kbd>N</kbd></label>
+    </div>
+
+    <div class="sec">
+      <h3>Células nesta foto</h3>
+      <div class="cells" id="cellTabs"></div>
+      <div class="count"><span class="big" id="cellN">0</span><span id="cellSub" class="muted"></span></div>
+      <div id="fields"></div>
+      <div class="field"><div class="lbl">Observações</div><textarea id="obs" placeholder="ex.: dois cromossomos encostados no centro"></textarea></div>
+      <div class="qrow">Qualidade da célula <span class="q vazia" id="qual">preencha os campos</span></div>
+    </div>
+
+    <div class="sec actions">
+      <button class="primary" id="btnSave">Salvar e próxima <kbd>Enter</kbd></button>
+      <div class="two">
+        <button id="btnPrev">Anterior</button>
+        <button id="btnNext">Próxima</button>
+      </div>
+      <button class="danger" id="btnDiscard">Descartar foto (sem célula contável)</button>
+    </div>
+
+    <div class="sec">
+      <h3>Ajuste da imagem <span class="aside">só na tela</span></h3>
+      <div class="slider"><span>Brilho</span><input type="range" id="sBright" min="50" max="160" value="100"><span id="vBright">100%</span></div>
+      <div class="slider"><span>Contraste</span><input type="range" id="sContrast" min="50" max="250" value="100"><span id="vContrast">100%</span></div>
+      <div class="slider"><span>Saturação</span><input type="range" id="sSat" min="0" max="250" value="100"><span id="vSat">100%</span></div>
+      <button id="btnResetImg" class="small" style="margin-top:4px">Restaurar cores</button>
+      <div class="faint small" style="margin-top:6px">A foto salva sai sempre com as cores originais.</div>
+    </div>
+
+    <div class="sec">
+      <h3>Progresso</h3>
+      <div id="stats"></div>
+      <div class="bar"><i id="barFill"></i></div>
+      <div id="grid"></div>
+      <div class="legend"><span><i style="background:var(--ok)"></i>salva</span><span><i style="background:var(--warn)"></i>rascunho</span><span><i style="background:var(--bad)"></i>descartada</span></div>
+      <button id="btnWriteCsv" class="small" style="margin-top:12px">Regravar planilha</button>
+    </div>
+  </aside>
+</div>
+
+<div id="modal" hidden role="dialog" aria-modal="true"><div class="box" id="modalBox"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* =====================================================================
+   Contador de cromossomos · versão 1.0 · licença MIT
+   Arquivo único, roda no navegador (Chrome ou Edge). Nada é enviado à internet.
+
+   Lê:    <pasta escolhida>/**  (somente leitura; inclui subpastas)
+   Grava: <pasta escolhida>/Contador - resultados/
+            Imagens marcadas/<foto>_contagem.jpg   foto inteira + marcações + total
+            Recortes ampliados/<foto>_zoom.jpg     só a região marcada, ampliada
+            contagens.csv                          uma linha por célula (abre no Excel)
+            sessao.json                            tudo o que foi marcado; permite continuar
+   ===================================================================== */
+
+const APP_VERSION = '1.0';
+const OUT_NAME   = 'Contador - resultados';
+const IMG_DIR    = 'Imagens marcadas';
+const ZOOM_DIR   = 'Recortes ampliados';
+const CSV_NAME   = 'contagens.csv';
+const SESS_NAME  = 'sessao.json';
+
+const CELL_COLORS = ['#22f07a', '#2fb4ff', '#ffd400', '#ffffff'];
+const DUV_COLOR   = '#ff8a00';
+
+// Critérios de classificação de cada célula (ver a aba "Qualidade" do guia)
+const FIELDS = [
+  ['Espalhamento',   ['Bom','Regular','Ruim']],
+  ['Sobreposição',   ['Nenhuma','Pouca','Muita']],
+  ['Célula inteira', ['Sim','Não','?']],
+  ['Fase',           ['Metáfase','Prometáfase','Outra','?']],
+  ['Foco',           ['Bom','Ruim']],
+];
+
+const $ = s => document.querySelector(s);
+const S = {
+  root:null, outDir:null, imgOut:null, zoomOut:null,
+  files:new Map(), sess:null, idx:-1, rel:null,
+  img:null, base:null, W:0, H:0,
+  cells:[], ci:0, undo:[], dirty:false,
+  view:{s:1, tx:0, ty:0}, tool:'c', width:3, alpha:.7, hide:false, nums:true,
+  filt:{b:100,c:100,sat:100},
+};
+
+/* ---------------- utilidades ---------------- */
+function baseName(rel){ return rel.split('/').pop().replace(/\.[^.]+$/,''); }
+function folderOf(rel){ return rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : ''; }
+function natural(a,b){ return a.localeCompare(b,'pt',{numeric:true,sensitivity:'base'}); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+function nowStr(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+let toastT;
+function toast(msg, err=false, ms=2600){ const t=$('#toast'); t.textContent=msg; t.className='show'+(err?' err':''); clearTimeout(toastT); toastT=setTimeout(()=>t.className='', err?Math.max(ms,6000):ms); }
+function lsGet(k,d){ try{ const v=localStorage.getItem('cc-'+k); return v==null?d:JSON.parse(v);}catch(e){return d;} }
+function lsSet(k,v){ try{ localStorage.setItem('cc-'+k,JSON.stringify(v)); }catch(e){} }
+function parseIgnore(s){ return String(s||'').split(',').map(t=>t.trim().toLowerCase()).filter(Boolean); }
+
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function shuffle(arr, seed){ const r=mulberry32(seed), a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// regra de qualidade (ver guia, aba "Qualidade")
+function qualidade(f){
+  if(FIELDS.some(([k])=>!f[k])) return '';
+  if(f['Sobreposição']==='Muita' || f['Célula inteira']==='Não') return 'Descartar';
+  if(f['Espalhamento']==='Bom' && (f['Sobreposição']==='Nenhuma'||f['Sobreposição']==='Pouca') && f['Célula inteira']==='Sim' && f['Fase']==='Metáfase' && f['Foco']==='Bom') return 'Boa';
+  return 'Regular';
+}
+function newCell(){ return {marks:[], f:{}, obs:''}; }
+function cellCounts(c){ let n=0,d=0; for(const m of c.marks){ if(m.t==='d') d++; else n++; } return {n,d}; }
+
+/* ---------------- arquivos (File System Access API) ---------------- */
+async function listImages(dir, prefix, ignore){
+  for await (const [name,h] of dir.entries()){
+    const low = name.normalize('NFC').toLowerCase();
+    if(ignore.some(t=>low.includes(t))) continue;
+    if(h.kind==='directory'){
+      if(prefix==='' && name.normalize('NFC')===OUT_NAME) continue;
+      await listImages(h, prefix+name+'/', ignore);
+    } else if(/\.(jpe?g|png|bmp|webp|tiff?)$/i.test(name)){
+      S.files.set(prefix+name, h);
+    }
+  }
+}
+async function writeFile(dir, name, data){
+  const fh = await dir.getFileHandle(name,{create:true});
+  const w = await fh.createWritable(); await w.write(data); await w.close();
+}
+async function readJSON(dir, name){
+  try{ const fh = await dir.getFileHandle(name); return JSON.parse(await (await fh.getFile()).text()); }catch(e){ return null; }
+}
+async function verifyPerm(h){
+  if(!h.queryPermission) return true;
+  const o={mode:'readwrite'};
+  if(await h.queryPermission(o)==='granted') return true;
+  return (await h.requestPermission(o))==='granted';
+}
+// guarda a última pasta para "Continuar com esta pasta"
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('contador-cromossomos-v1',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function kvSet(k,v){ try{ const db=await idb(); await new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }catch(e){} }
+async function kvGet(k){ try{ const db=await idb(); return await new Promise((res,rej)=>{ const tx=db.transaction('kv','readonly'); const r=tx.objectStore('kv').get(k); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }catch(e){ return null; } }
+
+/* ---------------- tela inicial ---------------- */
+let existingSess = null;
+async function scan(ignore){
+  S.files = new Map();
+  await listImages(S.root, '', ignore);
+}
+async function inspectRoot(){
+  const info = $('#folderInfo');
+  info.textContent = 'Lendo a pasta…';
+  existingSess = null;
+  try{ const out = await S.root.getDirectoryHandle(OUT_NAME); existingSess = await readJSON(out, SESS_NAME); }catch(e){}
+  const ignore = existingSess ? (existingSess.ignore||[]) : parseIgnore($('#optIgnore').value);
+  await scan(ignore);
+  const folders = new Set([...S.files.keys()].map(folderOf).filter(Boolean));
+  info.innerHTML = S.files.size
+    ? `Pasta <b>${esc(S.root.name)}</b>: <b class="num">${S.files.size}</b> fotos` + (folders.size?` em <span class="num">${folders.size}</span> subpasta${folders.size>1?'s':''}`:'') + '.'
+    : `<span style="color:var(--warn)">Nenhuma foto encontrada em <b>${esc(S.root.name)}</b>. O contador aceita JPG, PNG, BMP, WEBP e TIFF.</span>`;
+  $('#step1').classList.toggle('done', S.files.size>0);
+  if(existingSess){
+    const st = summarize(existingSess);
+    $('#sessNote').innerHTML = `<div class="tip">Esta pasta já tem uma sessão (${st.feitas} de ${existingSess.order.length} fotos feitas, ${existingSess.blind?'às cegas':'com nomes visíveis'}). Ela continua com as mesmas opções.</div>`;
+    $('#optBlind').checked = existingSess.blind; $('#optIgnore').value = (existingSess.ignore||[]).join(', ');
+    $('#optBlind').disabled = $('#optIgnore').disabled = true;
+    $('#btnStart').textContent = 'Continuar sessão';
+  } else {
+    $('#sessNote').textContent=''; $('#optBlind').disabled = $('#optIgnore').disabled = false;
+    $('#btnStart').textContent = 'Começar';
+  }
+  $('#step2').classList.toggle('done', S.files.size>0);
+  $('#btnStart').disabled = S.files.size===0;
+}
+$('#btnPick').onclick = async ()=>{
+  if(!window.showDirectoryPicker){ toast('Este navegador não abre pastas. Use o Google Chrome ou o Microsoft Edge no computador.', true); return; }
+  try{ S.root = await window.showDirectoryPicker({id:'contador-cromossomos', mode:'readwrite'}); }catch(e){ return; }
+  await kvSet('root', S.root);
+  $('#resumeName').textContent = S.root.name;
+  await inspectRoot();
+};
+let ignT=null;
+$('#optIgnore').oninput = ()=>{ if(!S.root || existingSess) return; clearTimeout(ignT); ignT=setTimeout(inspectRoot, 500); };
+$('#btnResume').onclick = async ()=>{
+  try{ if(!await verifyPerm(S.root)){ toast('O navegador não liberou a pasta. Use “Escolher pasta…”.', true); return; } }
+  catch(e){ toast('Não foi possível reabrir a pasta. Use “Escolher pasta…”.', true); return; }
+  await inspectRoot();
+  if(S.files.size) startSession();
+};
+$('#btnStart').onclick = startSession;
+$('#btnGuideSetup').onclick = ()=>openGuide('inicio');
+
+(async function init(){
+  if(!window.showDirectoryPicker){ $('#unsupported').hidden=false; $('#btnPick').disabled = true; }
+  const h = await kvGet('root');
+  if(h && h.name && window.showDirectoryPicker){ S.root = h; $('#resumeName').textContent = h.name; $('#cardResume').hidden = false; }
+  const f = lsGet('filt', null); if(f) S.filt = f;
+  S.width = lsGet('width', 3); S.alpha = lsGet('alpha', .7); S.nums = lsGet('nums', true);
+})();
+
+async function startSession(){
+  try{
+    S.outDir  = await S.root.getDirectoryHandle(OUT_NAME, {create:true});
+    S.imgOut  = await S.outDir.getDirectoryHandle(IMG_DIR, {create:true});
+    S.zoomOut = await S.outDir.getDirectoryHandle(ZOOM_DIR, {create:true});
+  }catch(e){ toast('Não foi possível criar a pasta de resultados: '+e.message, true); return; }
+  let sess = await readJSON(S.outDir, SESS_NAME);
+  if(!sess){
+    const blind = $('#optBlind').checked, ignore = parseIgnore($('#optIgnore').value);
+    const list = [...S.files.keys()].sort(natural);
+    const seed = (Math.random()*4294967296)>>>0;
+    sess = {app:'contador-cromossomos', version:APP_VERSION, criada:new Date().toISOString(), blind, ignore, seed,
+            order: blind ? shuffle(list, seed) : list, items:{}};
+  } else {
+    // fotos novas que apareceram na pasta entram no fim da fila
+    const known = new Set(sess.order);
+    const extra = [...S.files.keys()].filter(r=>!known.has(r)).sort(natural);
+    if(extra.length){ sess.order.push(...(sess.blind ? shuffle(extra, (sess.seed+sess.order.length)>>>0) : extra)); toast(`${extra.length} foto(s) nova(s) entraram no fim da fila.`); }
+  }
+  S.sess = sess;
+  await saveSession();
+  $('#setup').hidden = true; $('#app').hidden = false;
+  $('#blindBadge').textContent = sess.blind ? 'às cegas' : 'nomes visíveis';
+  $('#blindBadge').classList.toggle('open', !sess.blind);
+  buildFieldsUI(); syncToolUI(); resize();
+  const first = sess.order.findIndex(r=>!sess.items[r] || sess.items[r].status==='rascunho');
+  await openIndex(first<0 ? 0 : first);
+  if(first<0) showDone();
+}
+
+/* ---------------- sessão / planilha ---------------- */
+function summarize(sess){
+  let contadas=0, descartadas=0, rasc=0, celulas=0;
+  for(const r of sess.order){ const it=sess.items[r]; if(!it) continue;
+    if(it.status==='contada'){ contadas++; celulas+=it.cells.length; } else if(it.status==='descartada') descartadas++; else if(it.status==='rascunho') rasc++; }
+  return {contadas, descartadas, rasc, celulas, feitas:contadas+descartadas, pend:sess.order.length-contadas-descartadas};
+}
+let sessT=null;
+async function saveSession(){
+  clearTimeout(sessT); sessT=null;
+  try{ S.sess.atualizada = new Date().toISOString(); await writeFile(S.outDir, SESS_NAME, JSON.stringify(S.sess)); setSaveState('gravado às '+nowStr().slice(-5)); }
+  catch(e){ setSaveState('erro ao gravar', 'err'); toast('A sessão não foi gravada: '+e.message, true); }
+}
+function setSaveState(t, cls=''){ const e=$('#saveState'); e.textContent=t; e.className=cls; }
+
+function csvCell(v){ v = v==null ? '' : String(v); return /[;"\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function buildCSV(){
+  const head = ['Ordem de exibição','Foto','Subpasta','Célula','n (cromossomos)','Dúvidas','n máximo (n + dúvidas)',
+    ...FIELDS.map(f=>f[0]),'Qualidade','Observações','Situação','Salva em','Arquivo marcado','Caminho'];
+  const rows=[head];
+  const rels = S.sess.order.filter(r=>S.sess.items[r] && (S.sess.items[r].status==='contada'||S.sess.items[r].status==='descartada')).sort(natural);
+  for(const r of rels){
+    const it=S.sess.items[r], base=baseName(r), ord=S.sess.order.indexOf(r)+1, fold=folderOf(r);
+    if(it.status==='descartada'){
+      rows.push([ord,base,fold,'','','','',...FIELDS.map(()=>''),'Descartar',it.motivo||'','Descartada',it.salva||'','',r]);
+      continue;
+    }
+    it.cells.forEach((c,i)=>{
+      const {n,d}=cellCounts(c), q=qualidade(c.f);
+      const cel = it.cells.length>1 ? 'abcdefgh'[i] : '1';
+      rows.push([ord,base,fold,cel,n,d,n+d,...FIELDS.map(([k])=>c.f[k]||''),q,c.obs||'','Contada',it.salva||'',outName(r),r]);
+    });
+  }
+  return '﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n')+'\r\n';
+}
+// nome do arquivo de saída: inclui a subpasta para não haver dois arquivos com o mesmo nome
+function outStem(rel){ return rel.replace(/\.[^.]+$/,'').replace(/[\/\\]/g,' - ').replace(/[:*?"<>|]/g,'_'); }
+function outName(rel){ return outStem(rel)+'_contagem.jpg'; }
+async function writeCSV(){
+  try{ await writeFile(S.outDir, CSV_NAME, buildCSV()); return true; }
+  catch(e){ toast('A planilha não foi gravada (ela está aberta no Excel?). Os dados estão seguros na sessão: feche a planilha e clique em “Regravar planilha”.', true); return false; }
+}
+$('#btnWriteCsv').onclick = async ()=>{ if(await writeCSV()) toast('Planilha gravada.'); };
+
+/* ---------------- abrir imagem ---------------- */
+async function openIndex(i){
+  if(i<0 || i>=S.sess.order.length) return;
+  if(S.rel) stashIfDirty();
+  S.idx=i; S.rel=S.sess.order[i];
+  const fh = S.files.get(S.rel);
+  $('#loading').hidden=false;
+  if(!fh){ $('#loading').textContent='Foto não encontrada na pasta: '+(S.sess.blind?'(nome oculto)':S.rel); S.img=null; S.cells=[newCell()]; S.ci=0; updateUI(); render(); return; }
+  try{ S.img = await createImageBitmap(await fh.getFile()); }
+  catch(e){ $('#loading').textContent='O navegador não conseguiu abrir esta foto (formato não suportado?).'; S.img=null; S.cells=[newCell()]; S.ci=0; updateUI(); render(); return; }
+  $('#loading').hidden=true; $('#loading').textContent='Carregando…';
+  S.W=S.img.width; S.H=S.img.height;
+  buildBase();
+  const it=S.sess.items[S.rel];
+  S.cells = it && it.cells && it.cells.length ? clone(it.cells) : [newCell()];
+  S.ci=0; S.undo=[]; S.dirty=false;
+  fit(); updateUI();
+}
+function stashIfDirty(){
+  if(!S.dirty) return;
+  const prev = S.sess.items[S.rel];
+  if(prev && prev.status==='contada'){
+    if(!confirm('Você mudou as marcas de uma foto já salva e saiu sem salvar.\n\nOK = manter a versão salva antes (descartar a mudança)\nCancelar = guardar a mudança como rascunho (a foto sai da planilha até ser salva de novo)')) {
+      S.sess.items[S.rel] = {status:'rascunho', cells:clone(S.cells)};
+    }
+  } else {
+    S.sess.items[S.rel] = {status:'rascunho', cells:clone(S.cells)};
+  }
+  S.dirty=false; saveSession();
+}
+function buildBase(){
+  if(!S.img) return;
+  const c = S.base || (S.base=document.createElement('canvas'));
+  c.width=S.W; c.height=S.H;
+  const x=c.getContext('2d');
+  x.filter = `brightness(${S.filt.b}%) contrast(${S.filt.c}%) saturate(${S.filt.sat}%)`;
+  x.drawImage(S.img,0,0); x.filter='none';
+}
+
+/* ---------------- desenho ---------------- */
+const cv=$('#cv'), ctx=cv.getContext('2d'), stage=$('#stage');
+let dpr=1;
+function resize(){ dpr=window.devicePixelRatio||1; cv.width=Math.round(stage.clientWidth*dpr); cv.height=Math.round(stage.clientHeight*dpr); render(); }
+window.addEventListener('resize', ()=>{ if(!$('#app').hidden) resize(); });
+function fit(){
+  if(!S.img) return;
+  const cw=stage.clientWidth, ch=stage.clientHeight;
+  const s=Math.min(cw/S.W, ch/S.H)*0.96;
+  S.view={s, tx:(cw-S.W*s)/2, ty:(ch-S.H*s)/2}; render();
+}
+let raf=0;
+function render(){ if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; draw(); }); }
+function draw(){
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+  if(!S.img) return;
+  const {s,tx,ty}=S.view;
+  ctx.setTransform(dpr*s,0,0,dpr*s,dpr*tx,dpr*ty);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality='high';
+  ctx.drawImage(S.base,0,0);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(!S.hide){
+    const cells = S.cells.slice();
+    if(cur) { cells[S.ci] = {...cells[S.ci], marks:[...cells[S.ci].marks, cur]}; }
+    drawAnn(ctx, cells, {map:(x,y)=>[x*s+tx, y*s+ty], k:s, font:13, alpha:S.alpha, active:S.ci, labels:S.nums});
+  }
+  $('#zoomInfo').textContent = Math.round(s*100)+'%';
+}
+// desenha as marcações; o.map converte coordenada da imagem → destino
+function drawAnn(c, cells, o){
+  cells.forEach((cell,ci)=>{
+    const col = CELL_COLORS[ci%CELL_COLORS.length];
+    const dim = (o.active==null || o.active===ci) ? 1 : 0.45;
+    let nc=0, nd=0;
+    for(const m of cell.marks){
+      const color = m.t==='d' ? DUV_COLOR : col;
+      const lbl = m.t==='d' ? '?'+(++nd) : String(++nc);
+      const pts = m.p.map(p=>o.map(p[0],p[1]));
+      const lw = Math.max(1, m.w*o.k);
+      c.save(); c.globalAlpha=o.alpha*dim; c.strokeStyle=c.fillStyle=color; c.lineCap='round'; c.lineJoin='round'; c.lineWidth=lw;
+      if(pts.length<2){ c.beginPath(); c.arc(pts[0][0],pts[0][1],Math.max(2,lw*0.8),0,Math.PI*2); c.fill(); }
+      else { c.beginPath(); c.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) c.lineTo(pts[i][0],pts[i][1]); c.stroke(); }
+      c.restore();
+      if(o.labels===false) continue;   // números escondidos só na tela; a foto salva sempre leva os números
+      const off = lw*0.6 + o.font*0.2;
+      c.save(); c.globalAlpha=dim; c.font=`700 ${o.font}px system-ui,"Segoe UI",sans-serif`; c.lineJoin='round';
+      c.lineWidth=Math.max(2.5,o.font/4); c.strokeStyle='rgba(0,0,0,.9)'; c.fillStyle=color;
+      c.strokeText(lbl, pts[0][0]+off, pts[0][1]-off); c.fillText(lbl, pts[0][0]+off, pts[0][1]-off);
+      c.restore();
+    }
+  });
+}
+
+/* ---------------- mouse ---------------- */
+let cur=null, panning=null, spaceDown=false;
+function toImg(e){ const r=cv.getBoundingClientRect(); const sx=e.clientX-r.left, sy=e.clientY-r.top; return [(sx-S.view.tx)/S.view.s, (sy-S.view.ty)/S.view.s, sx, sy]; }
+stage.addEventListener('contextmenu', e=>e.preventDefault());
+stage.addEventListener('pointerdown', e=>{
+  if(document.activeElement && document.activeElement!==document.body) document.activeElement.blur();
+  if(!S.img) return;
+  const [ix,iy,sx,sy]=toImg(e);
+  if(e.button===1 || (e.button===0 && spaceDown)){
+    panning={sx,sy,tx:S.view.tx,ty:S.view.ty}; stage.classList.add('panning'); stage.setPointerCapture(e.pointerId); e.preventDefault(); return;
+  }
+  if(e.button===2){ eraseAt(ix,iy); return; }
+  if(e.button!==0) return;
+  const t = (e.shiftKey || S.tool==='d') ? 'd' : 'c';
+  cur={t, w:S.width, p:[[r1(ix),r1(iy)]]};
+  stage.setPointerCapture(e.pointerId); render();
+});
+stage.addEventListener('pointermove', e=>{
+  if(panning){ const r=cv.getBoundingClientRect(); S.view.tx=panning.tx+(e.clientX-r.left-panning.sx); S.view.ty=panning.ty+(e.clientY-r.top-panning.sy); render(); return; }
+  if(!cur) return;
+  const [ix,iy]=toImg(e); const last=cur.p[cur.p.length-1];
+  if(Math.hypot(ix-last[0],iy-last[1]) > 1/S.view.s){ cur.p.push([r1(ix),r1(iy)]); render(); }
+});
+function endPointer(){
+  if(panning){ panning=null; stage.classList.remove('panning'); return; }
+  if(!cur) return;
+  const m=cur; cur=null;
+  // traço muito curto conta como clique (um ponto)
+  const len = m.p.reduce((a,p,i)=> i? a+Math.hypot(p[0]-m.p[i-1][0],p[1]-m.p[i-1][1]) : 0, 0);
+  if(len*S.view.s < 3) m.p=[m.p[0]];
+  S.cells[S.ci].marks.push(m); S.undo.push({op:'add', ci:S.ci});
+  changed();
+}
+stage.addEventListener('pointerup', endPointer);
+stage.addEventListener('pointercancel', endPointer);
+stage.addEventListener('wheel', e=>{
+  if(!S.img) return; e.preventDefault();
+  const r=cv.getBoundingClientRect(), sx=e.clientX-r.left, sy=e.clientY-r.top;
+  zoomAt(sx, sy, Math.pow(1.0018, -e.deltaY));
+},{passive:false});
+function zoomAt(sx,sy,f){
+  const ns=Math.min(30, Math.max(0.05, S.view.s*f)); const k=ns/S.view.s;
+  S.view.tx = sx-(sx-S.view.tx)*k; S.view.ty = sy-(sy-S.view.ty)*k; S.view.s=ns; render();
+}
+function r1(v){ return Math.round(v*10)/10; }
+function distSeg(px,py,a,b){ const dx=b[0]-a[0], dy=b[1]-a[1]; const L=dx*dx+dy*dy; let t=L? ((px-a[0])*dx+(py-a[1])*dy)/L : 0; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-a[0]-t*dx, py-a[1]-t*dy); }
+function eraseAt(ix,iy){
+  const tol = 7/S.view.s; let best=null;
+  S.cells.forEach((c,ci)=>c.marks.forEach((m,mi)=>{
+    let d = m.p.length<2 ? Math.hypot(ix-m.p[0][0], iy-m.p[0][1]) : Math.min(...m.p.slice(1).map((p,i)=>distSeg(ix,iy,m.p[i],p)));
+    d -= m.w/2;
+    if(d<tol && (!best || d<best.d)) best={ci,mi,d};
+  }));
+  if(!best) return;
+  const [m]=S.cells[best.ci].marks.splice(best.mi,1);
+  S.undo.push({op:'del', ci:best.ci, mi:best.mi, m});
+  changed();
+}
+function undo(){
+  const a=S.undo.pop(); if(!a) return;
+  if(a.op==='add') S.cells[a.ci].marks.pop();
+  else if(a.op==='del') S.cells[a.ci].marks.splice(a.mi,0,a.m);
+  changed();
+}
+function changed(){ S.dirty=true; updateCounts(); render(); draftSoon(); }
+let draftT=null;
+function draftSoon(){ // rascunho automático: se o navegador fechar, as marcas não se perdem
+  clearTimeout(draftT);
+  draftT=setTimeout(()=>{ const prev=S.sess.items[S.rel]; if(prev && prev.status==='contada') return; S.sess.items[S.rel]={status:'rascunho', cells:clone(S.cells)}; saveSession(); updateGrid(); }, 3000);
+}
+
+/* ---------------- teclado ---------------- */
+function typing(){ const a=document.activeElement; return a && (a.tagName==='TEXTAREA' || (a.tagName==='INPUT' && a.type!=='checkbox' && a.type!=='range')); }
+window.addEventListener('keydown', e=>{
+  if(!$('#modal').hidden){ if(e.key==='Escape') closeModal(); return; }
+  if($('#app').hidden) return;
+  if(typing()){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); document.activeElement.blur(); saveAndNext(); } return; }
+  if(e.code==='Space'){ spaceDown=true; stage.classList.add('pan'); e.preventDefault(); return; }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); return; }
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const k=e.key;
+  if(k==='Enter'){ e.preventDefault(); saveAndNext(); }
+  else if(k==='d'||k==='D'){ setTool(S.tool==='d'?'c':'d'); }
+  else if(k==='h'||k==='H'){ if(!e.repeat){ S.hide=true; $('#hideMarks').checked=true; render(); } }
+  else if(k==='f'||k==='F'){ fit(); }
+  else if(k==='n'||k==='N'){ setNums(!S.nums); }
+  else if(k==='['){ setWidth(S.width-0.5); }
+  else if(k===']'){ setWidth(S.width+0.5); }
+  else if(k==='c'||k==='C'){ addCell(); }
+  else if(k==='+'||k==='='){ zoomAt(stage.clientWidth/2, stage.clientHeight/2, 1.25); }
+  else if(k==='-'){ zoomAt(stage.clientWidth/2, stage.clientHeight/2, 0.8); }
+  else if(k==='ArrowRight'){ go(1); } else if(k==='ArrowLeft'){ go(-1); }
+  else if(k==='?'){ openGuide('atalhos'); }
+  else if(/^[1-4]$/.test(k) && +k<=S.cells.length){ S.ci=+k-1; updateUI(); }
+});
+window.addEventListener('keyup', e=>{
+  if(e.code==='Space'){ spaceDown=false; stage.classList.remove('pan'); }
+  if(e.key==='h'||e.key==='H'){ S.hide=false; $('#hideMarks').checked=false; render(); }
+});
+window.addEventListener('beforeunload', e=>{ if(S.sess && (S.dirty || sessT)){ if(S.rel && S.dirty){ const prev=S.sess.items[S.rel]; if(!prev||prev.status!=='contada') S.sess.items[S.rel]={status:'rascunho',cells:clone(S.cells)}; } saveSession(); e.preventDefault(); e.returnValue=''; } });
+
+/* ---------------- painel ---------------- */
+function setTool(t){ S.tool=t; syncToolUI(); updateCounts(); }
+function setWidth(w){ S.width=Math.max(1,Math.min(25,Math.round(w*2)/2)); lsSet('width',S.width); syncToolUI(); }
+function syncToolUI(){
+  $('#toolC').classList.toggle('on', S.tool==='c'); $('#toolD').classList.toggle('on', S.tool==='d');
+  $('#sWidth').value=S.width; $('#vWidth').textContent=S.width;
+  $('#showNums').checked=S.nums;
+  $('#sAlpha').value=S.alpha; $('#vAlpha').textContent=Math.round(S.alpha*100)+'%';
+  $('#sBright').value=S.filt.b; $('#vBright').textContent=S.filt.b+'%';
+  $('#sContrast').value=S.filt.c; $('#vContrast').textContent=S.filt.c+'%';
+  $('#sSat').value=S.filt.sat; $('#vSat').textContent=S.filt.sat+'%';
+}
+$('#toolC').onclick=()=>setTool('c'); $('#toolD').onclick=()=>setTool('d');
+$('#sWidth').oninput=e=>setWidth(+e.target.value);
+$('#sAlpha').oninput=e=>{ S.alpha=+e.target.value; lsSet('alpha',S.alpha); syncToolUI(); render(); };
+$('#hideMarks').onchange=e=>{ S.hide=e.target.checked; render(); };
+function setNums(v){ S.nums=v; lsSet('nums',v); $('#showNums').checked=v; render(); }
+$('#showNums').onchange=e=>setNums(e.target.checked);
+let filtT=null;
+function onFilt(){ syncToolUI(); lsSet('filt',S.filt); clearTimeout(filtT); filtT=setTimeout(()=>{ buildBase(); render(); }, 60); }
+$('#sBright').oninput=e=>{ S.filt.b=+e.target.value; onFilt(); };
+$('#sContrast').oninput=e=>{ S.filt.c=+e.target.value; onFilt(); };
+$('#sSat').oninput=e=>{ S.filt.sat=+e.target.value; onFilt(); };
+$('#btnResetImg').onclick=()=>{ S.filt={b:100,c:100,sat:100}; onFilt(); };
+
+function buildFieldsUI(){
+  const box=$('#fields'); box.innerHTML='';
+  for(const [k,opts] of FIELDS){
+    const d=document.createElement('div'); d.className='field';
+    d.innerHTML=`<div class="lbl">${k}</div><div class="seg"></div>`;
+    const seg=d.querySelector('.seg');
+    for(const o of opts){
+      const b=document.createElement('button'); b.textContent=o; b.dataset.k=k; b.dataset.v=o;
+      b.onclick=()=>{ const f=S.cells[S.ci].f; f[k] = f[k]===o ? undefined : o; S.dirty=true; draftSoon(); updateUI(); };
+      seg.appendChild(b);
+    }
+    box.appendChild(d);
+  }
+}
+$('#obs').oninput=e=>{ S.cells[S.ci].obs=e.target.value.trim(); S.dirty=true; draftSoon(); };
+
+function addCell(){ S.cells.push(newCell()); S.ci=S.cells.length-1; S.dirty=true; updateUI(); render(); }
+function removeCell(i){
+  if(S.cells.length<=1) return;
+  if(S.cells[i].marks.length && !confirm(`Remover a célula ${i+1} e as ${S.cells[i].marks.length} marcas dela?`)) return;
+  S.cells.splice(i,1); S.ci=Math.min(S.ci,S.cells.length-1); S.undo=[]; changed(); updateUI();
+}
+function updateCounts(){
+  const c=S.cells[S.ci]; const {n,d}=cellCounts(c); const col=CELL_COLORS[S.ci%CELL_COLORS.length];
+  $('#cellN').textContent=n; $('#cellN').style.color=col;
+  $('#cellSub').textContent = d ? `+ ${d} dúvida${d>1?'s':''} (máx. ${n+d})` : (n===1?'cromossomo':'cromossomos');
+  $('#hudN').textContent = n + (d?` +${d}?`:'');
+  $('#hudN').style.color=col;
+  $('#hudSub').textContent = `célula ${S.ci+1}` + (S.cells.length>1?` de ${S.cells.length}`:'') + (S.tool==='d'?', marcando dúvidas':'');
+  const tabs=$('#cellTabs'); tabs.innerHTML='';
+  S.cells.forEach((cell,i)=>{ const b=document.createElement('button'); b.className='cell'+(i===S.ci?' on':''); b.style.color=CELL_COLORS[i%CELL_COLORS.length];
+    b.textContent=`${i+1}: ${cellCounts(cell).n}`; b.title=`Célula ${i+1} (tecla ${i+1})`; b.onclick=()=>{ S.ci=i; updateUI(); render(); }; tabs.appendChild(b); });
+  const add=document.createElement('button'); add.textContent='+ célula'; add.title='Outra célula na mesma foto (C)'; add.className='small'; add.onclick=addCell; tabs.appendChild(add);
+  if(S.cells.length>1){ const rm=document.createElement('button'); rm.textContent='Remover'; rm.className='danger small'; rm.title='Remover a célula selecionada'; rm.onclick=()=>removeCell(S.ci); tabs.appendChild(rm); }
+}
+function updateUI(){
+  if(!S.sess) return;
+  const it=S.sess.items[S.rel];
+  const pos=`Foto ${S.idx+1} de ${S.sess.order.length}`;
+  $('#imgTitle').textContent = S.sess.blind ? pos : `${baseName(S.rel)} (${pos.toLowerCase()})`;
+  document.title = (S.sess.blind ? pos : baseName(S.rel)) + ' · Contador de cromossomos';
+  updateCounts();
+  const c=S.cells[S.ci];
+  document.querySelectorAll('#fields button').forEach(b=>b.classList.toggle('on', c.f[b.dataset.k]===b.dataset.v));
+  $('#obs').value=c.obs||'';
+  const q=qualidade(c.f), qe=$('#qual'); qe.className='q '+(q||'vazia'); qe.textContent=q||'preencha os campos';
+  $('#btnPrev').disabled = S.idx<=0; $('#btnNext').disabled = S.idx>=S.sess.order.length-1;
+  $('#btnSave').innerHTML = (it&&it.status==='contada' ? 'Salvar de novo e próxima' : 'Salvar e próxima')+' <kbd>Enter</kbd>';
+  updateGrid(); syncToolUI(); render();
+}
+function updateGrid(){
+  const g=$('#grid'); const st=summarize(S.sess);
+  $('#stats').innerHTML = `<span class="num">${st.contadas}</span> salvas (<span class="num">${st.celulas}</span> células) · <span class="num">${st.descartadas}</span> descartadas · <span class="num">${st.pend}</span> pendentes`;
+  $('#barFill').style.width = (S.sess.order.length? 100*st.feitas/S.sess.order.length : 0)+'%';
+  if(g.children.length!==S.sess.order.length){
+    g.innerHTML='';
+    S.sess.order.forEach((r,i)=>{ const b=document.createElement('button'); b.textContent=i+1; b.onclick=()=>openIndex(i); g.appendChild(b); });
+  }
+  S.sess.order.forEach((r,i)=>{ const b=g.children[i]; const it=S.sess.items[r];
+    b.className=(it?it.status:'')+(i===S.idx?' atual':''); b.title = S.sess.blind ? `Foto ${i+1}` : baseName(r); });
+}
+$('#btnPrev').onclick=()=>go(-1); $('#btnNext').onclick=()=>go(1);
+function go(d){ const i=S.idx+d; if(i>=0 && i<S.sess.order.length) openIndex(i); }
+function nextPending(){
+  const n=S.sess.order.length;
+  for(let k=1;k<=n;k++){ const i=(S.idx+k)%n; const it=S.sess.items[S.sess.order[i]]; if(!it || it.status==='rascunho') return i; }
+  return -1;
+}
+
+/* ---------------- salvar ---------------- */
+let saving=false;
+async function saveAndNext(){
+  if(saving || !S.img) return;
+  const empty = S.cells.filter(c=>c.marks.length===0);
+  if(empty.length===S.cells.length){ toast('Esta foto não tem nenhuma marca. Se não há célula contável, use “Descartar foto”.', true, 3500); return; }
+  if(empty.length){ if(!confirm(`${empty.length} célula(s) sem nenhuma marca serão removidas. Continuar?`)) return; S.cells=S.cells.filter(c=>c.marks.length); S.ci=0; }
+  const faltam = S.cells.map((c,i)=>FIELDS.some(([k])=>!c.f[k])?i+1:0).filter(Boolean);
+  if(faltam.length && !confirm(`A classificação da célula ${faltam.join(', ')} está incompleta (a qualidade fica em branco na planilha).\n\nSalvar assim mesmo?`)) return;
+  saving=true; setSaveState('gravando…','busy');
+  try{
+    const stem=outStem(S.rel), title=baseName(S.rel);
+    await writeFile(S.imgOut, stem+'_contagem.jpg', await renderFull(title));
+    const zoom = await renderZoom(title);
+    if(zoom) await writeFile(S.zoomOut, stem+'_zoom.jpg', zoom);
+    S.sess.items[S.rel] = {status:'contada', cells:clone(S.cells), salva:nowStr()};
+    S.dirty=false; clearTimeout(draftT);
+    await saveSession();
+    const ok = await writeCSV();
+    const tot = S.cells.map((c,i)=>{ const {n,d}=cellCounts(c); return (S.cells.length>1?`célula ${i+1}: `:'')+n+' cromossomos'+(d?` (+${d} dúvida${d>1?'s':''})`:''); }).join('; ');
+    toast(`Salva: ${tot}${ok?'':' (planilha pendente)'}`);
+    const nx=nextPending();
+    if(nx<0){ updateUI(); showDone(); } else await openIndex(nx);
+  }catch(e){ toast('A foto não foi salva: '+e.message, true); setSaveState('erro ao salvar','err'); }
+  saving=false;
+}
+$('#btnSave').onclick=saveAndNext;
+
+$('#btnDiscard').onclick=async ()=>{
+  const motivo = prompt('Motivo do descarte (vai para a coluna Observações):', 'Sem metáfase contável');
+  if(motivo===null) return;
+  S.sess.items[S.rel]={status:'descartada', motivo, cells:[], salva:nowStr()};
+  S.dirty=false; clearTimeout(draftT);
+  await saveSession(); await writeCSV();
+  toast('Foto descartada.');
+  const nx=nextPending(); if(nx<0){ updateUI(); showDone(); } else await openIndex(nx);
+};
+
+function bandFont(W){ return Math.max(16, Math.round(W/70)); }
+function headerText(base){
+  const parts = S.cells.map((c,i)=>{ const {n,d}=cellCounts(c); return (S.cells.length>1?`Célula ${'abcdefgh'[i]}: `:'')+`${n} cromossomos`+(d?` (+${d} dúvida${d>1?'s':''})`:''); });
+  return `${base}   ·   ${parts.join('   ·   ')}`;
+}
+function drawBand(c, W, band, text, font){
+  c.fillStyle='#ffffff'; c.fillRect(0,0,W,band);
+  let f=font; c.font=`700 ${f}px system-ui,"Segoe UI",sans-serif`;
+  while(c.measureText(text).width > W-2*f && f>9){ f--; c.font=`700 ${f}px system-ui,"Segoe UI",sans-serif`; }
+  c.fillStyle='#16181d'; c.textBaseline='middle'; c.fillText(text, Math.round(f*0.8), band/2);
+  c.textBaseline='alphabetic';
+  c.font=`500 ${Math.round(f*0.75)}px system-ui,sans-serif`; c.fillStyle='#6a6f7a';
+  const leg = (S.sess.blind?'contagem às cegas':'contagem')+' · '+nowStr();
+  const lw=c.measureText(leg).width; if(lw + c.measureText(text).width + 3*f < W) { c.textBaseline='middle'; c.fillText(leg, W-lw-f*0.8, band/2); c.textBaseline='alphabetic'; }
+}
+function canvasToJpeg(c){ return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('falha ao gerar a imagem')),'image/jpeg',0.93)); }
+async function renderFull(base){
+  const W=S.W, H=S.H, font=bandFont(W), band=Math.round(font*2.2);
+  const c=document.createElement('canvas'); c.width=W; c.height=H+band; const x=c.getContext('2d');
+  x.drawImage(S.img,0,band);
+  drawAnn(x, S.cells, {map:(a,b)=>[a,b+band], k:1, font:Math.max(11, Math.round(W/120)), alpha:Math.max(.6,S.alpha), active:null});
+  drawBand(x, W, band, headerText(base), font);
+  return canvasToJpeg(c);
+}
+async function renderZoom(base){
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(const c of S.cells) for(const m of c.marks) for(const p of m.p){ x0=Math.min(x0,p[0]-m.w); y0=Math.min(y0,p[1]-m.w); x1=Math.max(x1,p[0]+m.w); y1=Math.max(y1,p[1]+m.w); }
+  if(!isFinite(x0)) return null;
+  const mg=Math.max(25, 0.08*Math.max(x1-x0,y1-y0));
+  x0=Math.max(0,Math.floor(x0-mg)); y0=Math.max(0,Math.floor(y0-mg)); x1=Math.min(S.W,Math.ceil(x1+mg)); y1=Math.min(S.H,Math.ceil(y1+mg));
+  const bw=x1-x0, bh=y1-y0; const sc=Math.max(1, Math.min(6, 1400/Math.max(bw,bh)));
+  const W=Math.round(bw*sc), H=Math.round(bh*sc), font=Math.max(16,Math.round(W/55)), band=Math.round(font*2.2);
+  const c=document.createElement('canvas'); c.width=W; c.height=H+band; const x=c.getContext('2d');
+  x.imageSmoothingQuality='high'; x.drawImage(S.img, x0,y0,bw,bh, 0,band,W,H);
+  drawAnn(x, S.cells, {map:(a,b)=>[(a-x0)*sc,(b-y0)*sc+band], k:sc, font:Math.max(14,Math.round(W/70)), alpha:Math.max(.6,S.alpha), active:null});
+  drawBand(x, W, band, headerText(base), font);
+  return canvasToJpeg(c);
+}
+
+/* ---------------- janelas ---------------- */
+function openModal(html, narrow=false){ const b=$('#modalBox'); b.className='box'+(narrow?' narrow':''); b.innerHTML=html; $('#modal').hidden=false; const f=b.querySelector('.primary,.x'); if(f) f.focus(); }
+function closeModal(){ $('#modal').hidden=true; }
+$('#modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
+function showDone(){
+  const st=summarize(S.sess);
+  openModal(`<div class="mhead"><h2>Todas as fotos foram vistas</h2></div>
+    <div class="mbody"><p><b class="num">${st.contadas}</b> fotos salvas (<span class="num">${st.celulas}</span> células) e <b class="num">${st.descartadas}</b> descartadas.</p>
+    <p class="muted">Os resultados estão na pasta <b>${OUT_NAME}</b>: a planilha <b>${CSV_NAME}</b>, as fotos marcadas em <b>${IMG_DIR}</b> e os recortes em <b>${ZOOM_DIR}</b>. Você ainda pode voltar a qualquer foto pela grade de progresso e salvar de novo.</p></div>
+    <div class="foot"><button class="primary" onclick="closeModal()">Fechar</button></div>`, true);
+}
+
+/* ---------------- guia de uso ---------------- */
+const GUIDE = {
+  inicio:['Primeiros passos', `
+    <p>O contador serve para contar cromossomos em fotos de metáfases (por exemplo, de raízes coradas com Giemsa) de forma registrada e conferível: cada cromossomo recebe uma marca numerada, e a foto marcada fica salva como prova da contagem.</p>
+    <h4>Antes de começar</h4>
+    <ul>
+      <li>Use o <b>Google Chrome</b> ou o <b>Microsoft Edge</b> num computador. Outros navegadores não deixam o site gravar numa pasta.</li>
+      <li>Junte as fotos numa pasta. Pode haver subpastas, por exemplo uma por planta ou por lâmina; o nome da subpasta vai para a coluna <b>Subpasta</b> da planilha.</li>
+      <li>Se a planilha de resultados for aberta no Excel durante a sessão, feche-a antes de salvar a próxima foto (o Excel trava o arquivo).</li>
+    </ul>
+    <h4>Passo a passo</h4>
+    <ol>
+      <li>Clique em <b>Escolher pasta…</b> e selecione a pasta das fotos. O navegador pede permissão para ver e editar a pasta: aceite. Ele só cria a pasta <b>${OUT_NAME}</b>; as fotos originais não são alteradas.</li>
+      <li>Decida se quer o <b>modo às cegas</b> (recomendado para recontagem: você não vê de qual planta é a foto) e se alguma foto ou subpasta deve ficar de fora.</li>
+      <li>Clique em <b>Começar</b>. A primeira foto abre ajustada à tela.</li>
+      <li>Marque cada cromossomo, preencha a classificação da célula e pressione <kbd>Enter</kbd>. A foto marcada é gravada e a próxima abre.</li>
+      <li>Para parar, basta fechar a aba. Na volta, escolha a mesma pasta (ou clique em <b>Continuar com esta pasta</b>) e a sessão segue de onde parou.</li>
+    </ol>
+    <div class="tip">As opções da sessão (às cegas e fotos deixadas de fora) valem até o fim. Para começar uma contagem nova do zero, renomeie ou mova a pasta <b>${OUT_NAME}</b>.</div>`],
+  marcar:['Marcar', `
+    <h4>Cromossomos</h4>
+    <ul>
+      <li><b>Arraste</b> por cima do cromossomo, de uma ponta à outra, ou apenas <b>clique</b> nele. Cada marca conta 1 e recebe um número.</li>
+      <li>Um cromossomo de que você não tem certeza (pode ser dois encostados, ou um fragmento) vai como <b>dúvida</b>: segure <kbd>Shift</kbd> ao marcar, ou ligue a ferramenta Dúvida com <kbd>D</kbd>. Dúvidas ficam em laranja e são somadas à parte; a planilha traz o n e o n máximo (n + dúvidas).</li>
+      <li><b>Botão direito</b> sobre uma marca apaga a marca. <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz a última ação.</li>
+    </ul>
+    <h4>Navegar na foto</h4>
+    <ul>
+      <li>Roda do mouse, ou <kbd>+</kbd> e <kbd>-</kbd>: aproximar e afastar. <kbd>F</kbd>: ajustar à tela.</li>
+      <li><kbd>Espaço</kbd> + arrastar, ou o botão do meio do mouse: mover a foto.</li>
+      <li>Segure <kbd>H</kbd> para esconder as marcas e conferir a imagem por baixo. <kbd>N</kbd> esconde só os números (a foto salva sempre leva os números).</li>
+      <li><kbd>[</kbd> e <kbd>]</kbd> afinam e engrossam a linha. Brilho, contraste e saturação mudam só a tela.</li>
+    </ul>
+    <h4>Mais de uma célula na mesma foto</h4>
+    <p>Clique em <b>+ célula</b> (ou <kbd>C</kbd>). Cada célula tem uma cor (verde, azul, amarelo, branco), uma contagem e uma classificação próprias, e vira uma linha da planilha. Troque de célula com <kbd>1</kbd> a <kbd>4</kbd>.</p>
+    <h4>Fotos sem célula contável</h4>
+    <p>Use <b>Descartar foto</b> e escreva o motivo. A foto entra na planilha como descartada, para ficar registrado que foi vista.</p>`],
+  qualidade:['Qualidade', `
+    <p>Cada célula é classificada em cinco critérios. Com os cinco preenchidos, o contador calcula a <b>qualidade</b> da célula, que sai na planilha e permite separar as melhores metáfases na análise.</p>
+    <table><tr><th>Critério</th><th>Opções</th><th>O que avaliar</th></tr>
+      <tr><td>Espalhamento</td><td>Bom, Regular, Ruim</td><td>se os cromossomos estão bem separados uns dos outros</td></tr>
+      <tr><td>Sobreposição</td><td>Nenhuma, Pouca, Muita</td><td>quantos cromossomos se cruzam ou se encostam</td></tr>
+      <tr><td>Célula inteira</td><td>Sim, Não, ?</td><td>se a célula está completa na foto e sem cromossomos perdidos</td></tr>
+      <tr><td>Fase</td><td>Metáfase, Prometáfase, Outra, ?</td><td>a fase da divisão</td></tr>
+      <tr><td>Foco</td><td>Bom, Ruim</td><td>se a foto está nítida o bastante para separar os cromossomos</td></tr></table>
+    <h4>Como a qualidade é calculada</h4>
+    <table><tr><th>Qualidade</th><th>Regra</th></tr>
+      <tr><td><span class="q Descartar">Descartar</span></td><td>sobreposição Muita ou célula inteira Não</td></tr>
+      <tr><td><span class="q Boa">Boa</span></td><td>espalhamento Bom, sobreposição Nenhuma ou Pouca, célula inteira Sim, fase Metáfase e foco Bom</td></tr>
+      <tr><td><span class="q Regular">Regular</span></td><td>todos os outros casos</td></tr></table>
+    <p class="muted">Se algum critério ficar em branco, a célula é salva assim mesmo, mas a qualidade fica vazia na planilha.</p>`],
+  arquivos:['Arquivos gerados', `
+    <p>Tudo vai para a pasta <b>${OUT_NAME}</b>, dentro da pasta escolhida:</p>
+    <table><tr><th>Arquivo</th><th>Conteúdo</th></tr>
+      <tr><td><b>${CSV_NAME}</b></td><td>a planilha, com uma linha por célula (abre direto no Excel, separada por ponto e vírgula)</td></tr>
+      <tr><td><b>${IMG_DIR}/</b></td><td>cada foto inteira com as marcas numeradas e uma faixa branca no topo com o nome da foto e o total</td></tr>
+      <tr><td><b>${ZOOM_DIR}/</b></td><td>só a região marcada, ampliada, boa para figuras e para conferir</td></tr>
+      <tr><td><b>${SESS_NAME}</b></td><td>tudo o que foi marcado, incluindo rascunhos e a ordem embaralhada; é o que permite continuar e regravar a planilha. Não apague nem edite.</td></tr></table>
+    <h4>Colunas da planilha</h4>
+    <table><tr><th>Coluna</th><th>Conteúdo</th></tr>
+      <tr><td>Ordem de exibição</td><td>posição da foto na sessão (no modo às cegas, a ordem embaralhada)</td></tr>
+      <tr><td>Foto · Subpasta</td><td>nome do arquivo sem extensão e subpasta onde ele está</td></tr>
+      <tr><td>Célula</td><td>1, ou a, b, c… quando há mais de uma célula na foto</td></tr>
+      <tr><td>n · Dúvidas · n máximo</td><td>cromossomos marcados, marcados como dúvida, e a soma dos dois</td></tr>
+      <tr><td>Espalhamento … Foco · Qualidade</td><td>a classificação da célula (aba Qualidade)</td></tr>
+      <tr><td>Observações · Situação · Salva em</td><td>o texto livre (ou o motivo do descarte), Contada ou Descartada, e a data</td></tr>
+      <tr><td>Arquivo marcado · Caminho</td><td>nome da foto marcada gerada e caminho da foto original dentro da pasta</td></tr></table>
+    <div class="tip">Se a planilha estiver aberta no Excel na hora de salvar, ela não é atualizada, mas os dados ficam na sessão. Feche o Excel e clique em <b>Regravar planilha</b>.</div>`],
+  atalhos:['Atalhos', `
+    <table>
+      <tr><td>Arrastar ou clicar</td><td>marcar um cromossomo</td></tr>
+      <tr><td><kbd>Shift</kbd> + arrastar, ou <kbd>D</kbd></td><td>marcar como dúvida (laranja, contada à parte)</td></tr>
+      <tr><td>Botão direito na marca</td><td>apagar a marca</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>desfazer</td></tr>
+      <tr><td>Roda do mouse, <kbd>+</kbd> <kbd>-</kbd></td><td>zoom</td></tr>
+      <tr><td><kbd>Espaço</kbd> + arrastar, botão do meio</td><td>mover a foto</td></tr>
+      <tr><td><kbd>F</kbd></td><td>ajustar à tela</td></tr>
+      <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>espessura da linha</td></tr>
+      <tr><td>Segurar <kbd>H</kbd></td><td>esconder as marcas</td></tr>
+      <tr><td><kbd>N</kbd></td><td>mostrar ou esconder os números (só na tela)</td></tr>
+      <tr><td><kbd>C</kbd>, <kbd>1</kbd> a <kbd>4</kbd></td><td>nova célula, trocar de célula</td></tr>
+      <tr><td><kbd>Enter</kbd></td><td>salvar e ir para a próxima (nas Observações, <kbd>Shift</kbd>+<kbd>Enter</kbd> pula linha)</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>foto anterior ou próxima, sem salvar (as marcas viram rascunho)</td></tr>
+      <tr><td><kbd>?</kbd></td><td>abrir esta tabela</td></tr>
+    </table>`],
+  sobre:['Sobre', `
+    <p><b>Contador de cromossomos</b>, versão ${APP_VERSION}. Criado por João Pedro Reis para a recontagem às cegas de metáfases de jabuticabeiras (<i>Plinia</i> spp.) no Trabalho de Conclusão de Curso apresentado à Universidade Estadual de Goiás (2026), e publicado para que outras pessoas possam usar e conferir o método.</p>
+    <p>É um único arquivo HTML, sem instalação e sem servidor: abre pelo link do GitHub ou baixado no computador, inclusive sem internet. Usa a File System Access API dos navegadores Chrome e Edge para ler as fotos e gravar os resultados na pasta escolhida.</p>
+    <p class="muted">Licença MIT: pode usar, copiar e modificar, mantendo o aviso de autoria.</p>`],
+};
+function openGuide(tab='inicio'){
+  const tabs = Object.entries(GUIDE).map(([k,[t]])=>`<button data-tab="${k}" class="${k===tab?'on':''}">${t}</button>`).join('');
+  openModal(`<div class="mhead"><h2>Guia de uso</h2><button class="ghost x" onclick="closeModal()" aria-label="Fechar">Fechar</button></div>
+    <div class="tabs">${tabs}</div><div class="mbody" id="guideBody">${GUIDE[tab][1]}</div>`);
+  $('#modalBox').querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+    $('#modalBox').querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on', x===b));
+    $('#guideBody').innerHTML = GUIDE[b.dataset.tab][1]; $('#guideBody').scrollTop=0;
+  });
+}
+$('#btnHelp').onclick=()=>openGuide('inicio');
+</script>
+</body>
+</html>
