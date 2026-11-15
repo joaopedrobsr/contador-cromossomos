@@ -4,7 +4,7 @@ Ferramenta para **contar cromossomos em fotos de metáfases** marcando cada crom
 
 É um único arquivo HTML: não precisa instalar nada e funciona sem internet. As fotos e os resultados ficam na pasta do seu computador e **não são enviados para nenhum servidor**, nem quando o contador é aberto pelo link.
 
-**Abrir o contador:** https://SEU-USUARIO.github.io/contador-cromossomos/
+**Abrir o contador:** https://joaopedrobsr.github.io/contador-cromossomos/
 
 ---
 
@@ -147,7 +147,7 @@ O contador foi criado por João Pedro Reis para a recontagem às cegas de metáf
 
 Para citar (ABNT):
 
-> REIS, João Pedro. **Contador de cromossomos**. Versão 1.0. [S. l.], 2026. Disponível em: https://github.com/SEU-USUARIO/contador-cromossomos. Acesso em: dia mês ano.
+> REIS, João Pedro. **Contador de cromossomos**. Versão 1.0. 2026. Disponível em: https://github.com/joaopedrobsr/contador-cromossomos. Acesso em: dia mês ano.
 
 ## Licença
 
